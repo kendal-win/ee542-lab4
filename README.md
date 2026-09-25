@@ -307,4 +307,131 @@ Stop the JobHistory Server with:
 * MapReduce performance can be strongly affected by shuffle volume.  
 * Local aggregation can dramatically reduce shuffle traffic.  
 * The one-node/two-node measurements were performed using the same dataset and source code.  
-* The Hadoop cluster should be restored to two active YARN nodes before performing Spark experiments if Spark is intended to use the same cluster.  
+* The Hadoop cluster should be restored to two active YARN nodes before performing Spark experiments if Spark is intended to use the same cluster.
+
+# **EE542 Laboratory #4 - Spark**
+
+## **Overview**
+
+This portion of the lab sets up a two-node Spark cluster on AWS EC2.
+
+### **Environment**
+
+* **OS:** Ubuntu 22.04
+* **Spark:** 3.5.8
+* **Java:** OpenJDK 11
+* **Language:** Python 3
+* **Execution:** PySpark 
+* **Cluster:** 1 master \+ 1 worker
+* **Dataset:** 150 Project Gutenberg English books (\~110MB)
+* **HDFS input:** /gutenberg
+
+The same workloads were also executed with only the master node active to compare one-node and two-node performance.
+
+---
+
+## **1\. Spark Source Code**
+
+The Spark python scripts are:
+* spark_wordcount.py
+* spark_charcount.py
+* spark_minmax.py
+
+All three Spark programs functionally produce the same outputs as the corresponding Hadoop programs detailed above.
+
+## **3\. Running PySpark Jobs**
+Execute by running the Python files from the master node. Make sure the HDFS directories are empty before running.
+
+### **WordCount**
+* hdfs dfs -rm -r /output_spark_wordcount
+* time python3 spark_wordcount.py
+
+### **Character Count**
+* hdfs dfs -rm -r /output_spark_charcount
+* time python3 spark_charcount.py
+
+### **Min/Max**
+This program doesn't write to an output file.
+* time python3 spark_minmax.py
+
+---
+
+## **4\. Viewing Results**
+List an output directory:
+* hdfs dfs \-ls /output_spark_wordcount
+
+View the complete output:
+* hdfs dfs \-cat /output_spark_wordcount/part-00000
+
+View the first 100 lines:
+* hdfs dfs \-cat /output_spark_wordcount/part-00000 | head \-100
+
+Copy an HDFS output to a local file:
+* hdfs dfs \-cat /output_spark_wordcount/part-00000 \> output_spark_wordcount.txt  
+
+---
+
+## **5\. One-Node vs. Two-Node Experiment**
+To compare Spark performance, the same dataset and source code were run with one and two active nodes.
+
+### **One Node**
+
+Only the master node was active.
+
+### **Two Nodes**
+
+Both the master and worker nodes were active.
+
+### **Results**
+
+| Job | 1 Node | 2 Nodes |
+| ----- | ----- | ----- |
+| Word Count | 2m 5.069s | 1m 57.113s |
+| Character Count | 2m 28.794s | 2m 28.133s |
+| Min/Max | 1m 29.111s | 2m 0.583s |
+
+Word Count completed slightly faster with two nodes, but Min/Max took significantly longer. There was little change in the execution time of Character Count.
+
+---
+
+## **6\. Spark Cluster Configuration**
+Both nodes use:
+* Ubuntu 22.04  
+* Spark 3.5.8
+* Java 11
+
+### **Environment Variables**
+* export SPARK_HOME=/opt/spark
+* export PATH=$PATH:$SPARK_HOME/bin
+
+### **Node IPs**
+* Master Node: 172.31.2.84
+* Worker Node: 172.31.33.16 
+
+---
+
+## **7\. Important Configuration Changes**
+Because AWS security groups block ports outside the allowed range, the driver port was set to 8888.
+
+---
+
+## **8\. Starting the Spark Cluster**
+On the master:
+* /opt/spark/sbin/start-master.sh
+
+On the worker:
+* /opt/spark/sbin/start-worker.sh spark://172.31.2.84:7077
+
+---
+
+## **9\. Stopping the Spark Cluster**
+On the master:
+* /opt/spark/sbin/stop-master.sh
+
+On the worker:
+* /opt/spark/sbin/stop-worker.sh
+
+---
+
+## **10\. Important Notes**
+* Having multiple nodes doesn't necessarily cut down execution time. This is because, especially when using smaller datasets, the overhead that comes with the added node(s) may be more than the effective speedup. 
