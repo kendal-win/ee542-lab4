@@ -1,5 +1,5 @@
 from pyspark import SparkContext
-sc = SparkContext("local", "WordCount")
+sc = SparkContext("spark://172.31.2.84:7077", "WordCount")
 text = sc.textFile("/gutenberg/*.txt")
 counts = text.flatMap(lambda line: line.split()) \
 .map(lambda word: (word, 1)) \
